@@ -1,0 +1,46 @@
+{
+    "name": "matthieuwerner/dynamodb-storable",
+    "license": "MIT",
+    "type": "project",
+    "description": "This component, based on the Symfony serializer and async-aws, is a human-readable and\nquick abstraction to easily store serialized objects in DynamoDB.",
+    "homepage": "https://github.com/matthieuwerner/dynamodb-storable",
+    "keywords": ["dynamodb", "storable", "serializer", "symfony", "laravel", "key-value", "storage", "async-aws", "object"],
+    "autoload": {
+        "psr-4": {
+            "Storable\\": "src"
+        }
+    },
+    "require": {
+        "php": ">=8.0",
+        "symfony/serializer": "^5.0|^6.0",
+        "symfony/property-access": "^5.0|^6.0",
+        "async-aws/dynamo-db": "^1.2"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.8",
+        "phpunit/phpunit": "^9.5",
+        "phpstan/phpstan": "^1.7"
+    },
+    "scripts": {
+        "tests": [
+            "@cs-fixer",
+            "@phpstan",
+            "@phpunit"
+        ],
+        "cs-fixer": [
+            "vendor/bin/php-cs-fixer fix --dry-run -vvv --diff --config=.php-cs-fixer.php"
+        ],
+        "phpstan": [
+            "vendor/bin/phpstan analyse -c phpstan.neon"
+        ],
+        "phpunit": [
+            "vendor/bin/phpunit --configuration phpunit.xml -v --debug --colors=never"
+        ]
+    },
+    "scripts-descriptions": {
+        "tests": "Run all the tests",
+        "cs-fixer": "Run php cs fixer",
+        "phpstan": "Run PHPStan",
+        "phpunit": "Run PHPUnit"
+    }
+}
