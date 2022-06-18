@@ -1,42 +1,42 @@
 <?php
 
-namespace App\Storage;
+namespace Storable;
 
 use AsyncAws\DynamoDb\DynamoDbClient;
 use AsyncAws\DynamoDb\Enum\ComparisonOperator;
 use AsyncAws\DynamoDb\Input\DeleteItemInput;
-use AsyncAws\DynamoDb\Input\DescribeTableInput;
 use AsyncAws\DynamoDb\Input\GetItemInput;
 use AsyncAws\DynamoDb\Input\PutItemInput;
 use AsyncAws\DynamoDb\Input\QueryInput;
 use AsyncAws\DynamoDb\Input\UpdateItemInput;
 use AsyncAws\DynamoDb\ValueObject\AttributeValue;
+use Storable\Exception\StorageException;
+use Storable\Interface\StorableInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
-// @todo garder ce repo en exemple il est bien https://github.com/brefphp/bref
-
 class Storage
 {
-    // @todo Set this into config
-    public const TABLE = 'emojick_storage';
-
+    public const DEFAULT_TABLE = 'storage';
     public const DEFAULT_NAMESPACE = 'main';
+    public const DEFAULT_ATTRIBUTE_KEY = 'key';
+    public const DEFAULT_ATTRIBUTE_NAMESPACE = 'namespace';
+    public const DEFAULT_ATTRIBUTE_OBJECT = 'object';
+    public const DEFAULT_ATTRIBUTE_CLASS = 'class';
+    public const DEFAULT_ATTRIBUTE_DATE = 'date';
 
-    public const ATTRIBUTE_KEY = 'key';
-    public const ATTRIBUTE_NAMESPACE = 'namespace';
-    public const ATTRIBUTE_OBJECT = 'object';
-    public const ATTRIBUTE_CLASS = 'class';
-    public const ATTRIBUTE_DATE = 'date';
+    private string $table = self::DEFAULT_TABLE;
+    private string $namespace = self::DEFAULT_NAMESPACE;
+    private string $attributeKey = self::DEFAULT_ATTRIBUTE_KEY;
+    private string $attributeNamespace = self::DEFAULT_ATTRIBUTE_NAMESPACE;
+    private string $attributeObject = self::DEFAULT_ATTRIBUTE_OBJECT;
+    private string $attributeClass = self::DEFAULT_ATTRIBUTE_CLASS;
+    private string $attributeDate = self::DEFAULT_ATTRIBUTE_DATE;
 
-    /**
-     * @var DynamoDbClient
-     */
+    private bool $tableExists;
+
     public DynamoDbClient $client;
 
-    /**
-     * @var SerializerInterface
-     */
     public SerializerInterface $serializer;
 
     public NormalizerInterface $normalizer;
@@ -46,42 +46,89 @@ class Storage
         $this->client = $dynamoDbClient;
         $this->serializer = $serializer;
         $this->normalizer = $normalizer;
+    }
 
-        if (false === $this->tableExists()) {
-            throw new RuntimeException(sprintf('Table "%s" does not exist.', self::TABLE));
-        }
+    public function setTable(string $table): void
+    {
+        $this->table = $table;
+    }
+
+    public function setNamespace(string $namespace): void
+    {
+        $this->namespace = $namespace;
+    }
+
+    public function setAttributeKey(string $attributeKey): void
+    {
+        $this->attributeKey = $attributeKey;
+    }
+
+    public function setAttributeNamespace(string $attributeNamespace): void
+    {
+        $this->attributeNamespace = $attributeNamespace;
+    }
+
+    public function setAttributeObject(string $attributeObject): void
+    {
+        $this->attributeObject = $attributeObject;
+    }
+
+    public function setAttributeClass(string $attributeClass): void
+    {
+        $this->attributeClass = $attributeClass;
+    }
+
+    public function setAttributeDate(string $attributeDate): void
+    {
+        $this->attributeDate = $attributeDate;
     }
 
     protected function tableExists(): bool
     {
-        $result = $this->client->listTables();
+        if (isset($this->tableExists)) {
+            return $this->tableExists;
+        }
 
-        foreach ($result->getTableNames() as $table) {
-            if ($table === self::TABLE) {
-                return true;
+        $tables = $this->client->listTables();
+        foreach ($tables->getTableNames() as $table) {
+            if ($table === $this->table) {
+                $this->tableExists = true;
+
+                break;
             }
         }
 
-        return false;
+        $this->tableExists = false;
+
+        return $this->tableExists;
     }
 
-    public function set(string $key, string $value, string $namespace = self::DEFAULT_NAMESPACE): void
+    public function setObject(StorableInterface $object, string $namespace = null): void
+    {
+        $this->set($object->getId(), $namespace);
+    }
+
+    public function set(string $key, string $value, string $namespace = null): void
     {
         if (!$this->get($key, $namespace)) {
-            $this->insert($key, $value, $namespace);
+            $this->insert($key, $value, $namespace ?? $this->namespace);
         } else {
-            $this->update($key, $value, $namespace);
+            $this->update($key, $value, $namespace ?? $this->namespace);
         }
     }
 
-    public function get(string $key, string $namespace = self::DEFAULT_NAMESPACE): ?string
+    public function get(string $key, string $namespace = null): ?string
     {
+        if (false === $this->tableExists()) {
+            throw new StorageException(sprintf('Table "%s" does not exist.', $this->table));
+        }
+
         $item = $this->client->getItem(new GetItemInput([
-            'TableName' => self::TABLE,
+            'TableName' => $this->table,
             'ConsistentRead' => true,
             'Key' => [
-                self::ATTRIBUTE_KEY => new AttributeValue(['S' => $key]),
-                self::ATTRIBUTE_NAMESPACE => new AttributeValue(['S' => $namespace]),
+                $this->attributeKey => new AttributeValue(['S' => $key]),
+                $this->attributeNamespace => new AttributeValue(['S' => $namespace ?? $this->namespace]),
             ],
         ]))->getItem();
 
@@ -89,52 +136,50 @@ class Storage
             return null;
         }
 
-        return $this->serializer->deserialize($item[self::ATTRIBUTE_OBJECT]->getS(), $item[self::ATTRIBUTE_CLASS]->getS());
+        return $this->serializer->deserialize($item[$this->attributeObject]->getS(), $item[$this->attributeClass]->getS(), 'json', []);
     }
 
-    // @todo --------- CONTINUE HERE ----------------
-
-    public function insert(string $key, string $value, string $namespace = self::DEFAULT_NAMESPACE)
+    public function insert(string $key, string $value, string $namespace = null): void
     {
         $this->client->putItem(new PutItemInput([
-            'TableName' => self::TABLE,
+            'TableName' => $this->table,
             'Item' => [
-                self::ATTRIBUTE_KEY => new AttributeValue(['S' => $key]),
-                self::ATTRIBUTE_NAMESPACE => new AttributeValue(['S' => $namespace]),
-                self::ATTRIBUTE_OBJECT => new AttributeValue(['S' => $value]),
-                self::ATTRIBUTE_DATE => new AttributeValue(['N' => time()]),
+                $this->attributeKey => new AttributeValue(['S' => $key]),
+                $this->attributeNamespace => new AttributeValue(['S' => $namespace ?? $this->namespace]),
+                $this->attributeObject => new AttributeValue(['S' => $value]),
+                $this->attributeDate => new AttributeValue(['N' => (string) time()]),
             ],
         ]));
     }
 
-    public function update(string $key, string $value, string $namespace = self::DEFAULT_NAMESPACE)
+    public function update(string $key, string $value, string $namespace = null): void
     {
         $this->client->updateItem(new UpdateItemInput([
-            'TableName' => self::TABLE,
+            'TableName' => $this->table,
             'Key' => [
-                self::ATTRIBUTE_KEY => new AttributeValue(['S' => $key]),
-                self::ATTRIBUTE_NAMESPACE => new AttributeValue(['S' => $namespace]),
+                $this->attributeKey => new AttributeValue(['S' => $key]),
+                $this->attributeNamespace => new AttributeValue(['S' => $namespace ?? $this->namespace]),
             ],
             'AttributeUpdates' => [
-                self::ATTRIBUTE_OBJECT => [
+                $this->attributeObject => [
                     'Action' => 'PUT',
-                    'Value' => ['S' => $value ]
-                    ],
-                self::ATTRIBUTE_DATE => [
+                    'Value' => ['S' => $value],
+                ],
+                $this->attributeDate => [
                     'Action' => 'PUT',
-                    'Value' => ['N' => time() ]
+                    'Value' => ['N' => time()],
                 ],
             ],
         ]));
     }
 
-    public function remove(string $key, string $namespace = self::DEFAULT_NAMESPACE)
+    public function remove(string $key, string $namespace = null): void
     {
         $this->client->deleteItem(new DeleteItemInput([
-            'TableName' => self::TABLE,
+            'TableName' => $this->table,
             'Key' => [
-                self::ATTRIBUTE_KEY => new AttributeValue(['S' => $key]),
-                self::ATTRIBUTE_NAMESPACE => new AttributeValue(['S' => $namespace]),
+                $this->attributeKey => new AttributeValue(['S' => $key]),
+                $this->attributeNamespace => new AttributeValue(['S' => $namespace ?? $this->namespace]),
             ],
         ]));
     }
@@ -142,15 +187,15 @@ class Storage
     public function getByNamespace(string $namespace): \Iterator
     {
         return $this->client->query(new QueryInput([
-            'TableName' => self::TABLE,
+            'TableName' => $this->table,
             'KeyConditions' => [
-                self::ATTRIBUTE_NAMESPACE => [
+                $this->attributeNamespace => [
                     'ComparisonOperator' => ComparisonOperator::EQ,
                     'AttributeValueList' => [
-                        ['S' => $namespace]
-                    ]
-                ]
-            ]
+                        ['S' => $namespace],
+                    ],
+                ],
+            ],
         ]))->getItems();
     }
 

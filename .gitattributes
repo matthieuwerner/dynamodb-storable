@@ -1,0 +1,11 @@
+# Do not export those files in the Composer archive
+.gitattributes export-ignore
+.github/ export-ignore
+.gitignore export-ignore
+.php-cs-fixer.php export-ignore
+phpstan.neon export-ignore
+phpunit.xml export-ignore
+tests/ export-ignore
+
+# Auto detect text files and perform LF normalization
+* text=auto

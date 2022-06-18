@@ -4,10 +4,10 @@
     "type": "project",
     "description": "Bref is a framework to write and deploy serverless PHP applications on AWS Lambda.",
     "homepage": "https://github.com/matthieuwerner/dynamodb-storable",
-    "keywords": ["dynamodb", "storage", "serializer", "symfony", "laravel"],
+    "keywords": ["dynamodb", "storable", "serializer", "symfony", "laravel"],
     "autoload": {
         "psr-4": {
-            "Storage\\": "src"
+            "Storable\\": "src"
         }
     },
     "require": {
@@ -16,9 +16,9 @@
         "async-aws/dynamo-db": "^1.2"
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.0",
-        "phpunit/phpunit": "^9.0",
-        "phpstan/phpstan": "^0.12"
+        "friendsofphp/php-cs-fixer": "^3.8",
+        "phpunit/phpunit": "^9.5",
+        "phpstan/phpstan": "^1.7"
     },
     "scripts": {
         "tests": [
@@ -27,13 +27,13 @@
             "@phpunit"
         ],
         "cs-fixer": [
-            "vendor/bin/php-cs-fixer fix --dry-run -vvv --diff ."
+            "vendor/bin/php-cs-fixer fix --dry-run -vvv --diff --config=.php-cs-fixer.php"
         ],
         "phpstan": [
-            "vendor/bin/phpstan analyse"
+            "vendor/bin/phpstan analyse -c phpstan.neon"
         ],
         "phpunit": [
-            "vendor/bin/phpunit --testsuite small"
+            "vendor/bin/phpunit --configuration phpunit.xml -v --debug --colors=never"
         ]
     },
     "scripts-descriptions": {

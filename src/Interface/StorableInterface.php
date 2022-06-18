@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Storage\Interface;
+namespace Storable\Interface;
 
 interface StorableInterface
 {
