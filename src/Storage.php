@@ -14,6 +14,8 @@ use AsyncAws\DynamoDb\ValueObject\AttributeValue;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
+// @todo garder ce repo en exemple il est bien https://github.com/brefphp/bref
+
 class Storage
 {
     // @todo Set this into config
