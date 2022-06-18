@@ -28,7 +28,8 @@ class StorageTest extends TestCase
         $dynamoDbClientMock = $this->createMock(GetItemOutput::class);
         $dynamoDbClientMock->method('getItem')
             ->willReturn([
-                ''
+                'date' => 'coucou',
+                'date2' => 'coucou2'
             ]);
 
         // DynamoDbClient mock
