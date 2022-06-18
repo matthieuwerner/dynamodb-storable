@@ -5,6 +5,10 @@ namespace Storable\Tests\Interface;
 use PHPUnit\Framework\TestCase;
 use Storable\Interface\StorableInterface;
 
+/**
+ * @internal
+ * @coversNothing
+ */
 class StorageInterfaceTest extends TestCase
 {
     public function testInterfaceExists()

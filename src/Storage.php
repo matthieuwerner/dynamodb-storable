@@ -12,7 +12,6 @@ use AsyncAws\DynamoDb\Input\UpdateItemInput;
 use AsyncAws\DynamoDb\ValueObject\AttributeValue;
 use Storable\Exception\StorageException;
 use Storable\Interface\StorableInterface;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 class Storage
@@ -39,13 +38,10 @@ class Storage
 
     public SerializerInterface $serializer;
 
-    public NormalizerInterface $normalizer;
-
-    public function __construct(DynamoDbClient $dynamoDbClient, SerializerInterface $serializer, NormalizerInterface $normalizer)
+    public function __construct(DynamoDbClient $dynamoDbClient, SerializerInterface $serializer)
     {
         $this->client = $dynamoDbClient;
         $this->serializer = $serializer;
-        $this->normalizer = $normalizer;
     }
 
     public function setTable(string $table): void
@@ -93,6 +89,7 @@ class Storage
         foreach ($tables->getTableNames() as $table) {
             if ($table === $this->table) {
                 $this->tableExists = true;
+
                 return true;
             }
         }
@@ -116,7 +113,7 @@ class Storage
         }
     }
 
-    public function get(string $key, string $namespace = null): ?string
+    public function get(string $key, string $namespace = null): ?StorableInterface
     {
         if (false === $this->tableExists()) {
             throw new StorageException(sprintf('Table "%s" does not exist.', $this->table));
@@ -135,7 +132,7 @@ class Storage
             return null;
         }
 
-        return $this->serializer->deserialize($item[$this->attributeObject]->getS(), $item[$this->attributeClass]->getS(), 'json', []);
+        return $this->serializer->deserialize($item[$this->attributeObject]->getS(), $item[$this->attributeClass]->getS(), 'json');
     }
 
     public function insert(string $key, string $value, string $namespace = null): void

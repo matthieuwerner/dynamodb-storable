@@ -4,8 +4,11 @@ namespace Storable\Tests\Exception;
 
 use PHPUnit\Framework\TestCase;
 use Storable\Exception\StorageException;
-use Storable\Interface\StorableInterface;
 
+/**
+ * @internal
+ * @coversNothing
+ */
 class StorageExceptionTest extends TestCase
 {
     public function testException()
