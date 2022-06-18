@@ -13,7 +13,7 @@ jobs:
     container:
       image: composer:2.3.7
       volumes:
-        - $PWD:/usr/src/myapp
+        - ${{ github.workspace }}:/usr/src/myapp
     timeout-minutes: 10
     steps:
       - name: Checkout
