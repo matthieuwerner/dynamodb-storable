@@ -93,8 +93,7 @@ class Storage
         foreach ($tables->getTableNames() as $table) {
             if ($table === $this->table) {
                 $this->tableExists = true;
-
-                break;
+                return true;
             }
         }
 
