@@ -18,5 +18,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup PHP
+      - name: Run php cs fixer
         run: composer cs-fixer
+      - name: Run PHPStan
+        run: composer phpstan
+      - name: Run PHPUnit
+        run: composer phpunit
