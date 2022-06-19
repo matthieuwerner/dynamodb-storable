@@ -14,13 +14,13 @@ use Storable\Exception\StorageException;
 use Storable\Interface\StorableInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
-class Storage
+final class Storage
 {
     public const DEFAULT_TABLE = 'storage';
     public const DEFAULT_NAMESPACE = 'main';
     public const DEFAULT_ATTRIBUTE_KEY = 'key';
     public const DEFAULT_ATTRIBUTE_NAMESPACE = 'namespace';
-    public const DEFAULT_ATTRIBUTE_OBJECT = 'object';
+    public const DEFAULT_ATTRIBUTE_VALUE = 'value';
     public const DEFAULT_ATTRIBUTE_CLASS = 'class';
     public const DEFAULT_ATTRIBUTE_DATE = 'date';
 
@@ -28,7 +28,7 @@ class Storage
     private string $namespace = self::DEFAULT_NAMESPACE;
     private string $attributeKey = self::DEFAULT_ATTRIBUTE_KEY;
     private string $attributeNamespace = self::DEFAULT_ATTRIBUTE_NAMESPACE;
-    private string $attributeObject = self::DEFAULT_ATTRIBUTE_OBJECT;
+    private string $attributeValue = self::DEFAULT_ATTRIBUTE_VALUE;
     private string $attributeClass = self::DEFAULT_ATTRIBUTE_CLASS;
     private string $attributeDate = self::DEFAULT_ATTRIBUTE_DATE;
 
@@ -64,9 +64,9 @@ class Storage
         $this->attributeNamespace = $attributeNamespace;
     }
 
-    public function setAttributeObject(string $attributeObject): void
+    public function setAttributeValue(string $attributeValue): void
     {
-        $this->attributeObject = $attributeObject;
+        $this->attributeValue = $attributeValue;
     }
 
     public function setAttributeClass(string $attributeClass): void
@@ -79,7 +79,7 @@ class Storage
         $this->attributeDate = $attributeDate;
     }
 
-    protected function tableExists(): bool
+    private function tableExists(): bool
     {
         if (isset($this->tableExists)) {
             return $this->tableExists;
@@ -113,7 +113,7 @@ class Storage
         }
     }
 
-    public function get(string $key, string $namespace = null): ?StorableInterface
+    public function get(string $key, string $namespace = null): StorableInterface|string|null
     {
         if (false === $this->tableExists()) {
             throw new StorageException(sprintf('Table "%s" does not exist.', $this->table));
@@ -132,23 +132,27 @@ class Storage
             return null;
         }
 
-        return $this->serializer->deserialize($item[$this->attributeObject]->getS(), $item[$this->attributeClass]->getS(), 'json');
+        if (!empty($item[$this->attributeClass]->getS())) {
+            return $this->serializer->deserialize($item[$this->attributeValue]->getS(), $item[$this->attributeClass]->getS(), 'json');
+        }
+
+        return $item[$this->attributeValue]->getS();
     }
 
-    public function insert(string $key, string $value, string $namespace = null): void
+    private function insert(string $key, string $value, string $namespace = null): void
     {
         $this->client->putItem(new PutItemInput([
             'TableName' => $this->table,
             'Item' => [
                 $this->attributeKey => new AttributeValue(['S' => $key]),
                 $this->attributeNamespace => new AttributeValue(['S' => $namespace ?? $this->namespace]),
-                $this->attributeObject => new AttributeValue(['S' => $value]),
+                $this->attributeValue => new AttributeValue(['S' => $value]),
                 $this->attributeDate => new AttributeValue(['N' => (string) time()]),
             ],
         ]));
     }
 
-    public function update(string $key, string $value, string $namespace = null): void
+    private function update(string $key, string $value, string $namespace = null): void
     {
         $this->client->updateItem(new UpdateItemInput([
             'TableName' => $this->table,
@@ -157,7 +161,7 @@ class Storage
                 $this->attributeNamespace => new AttributeValue(['S' => $namespace ?? $this->namespace]),
             ],
             'AttributeUpdates' => [
-                $this->attributeObject => [
+                $this->attributeValue => [
                     'Action' => 'PUT',
                     'Value' => ['S' => $value],
                 ],

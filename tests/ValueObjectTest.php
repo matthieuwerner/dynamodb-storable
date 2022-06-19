@@ -4,7 +4,7 @@ namespace Storable\Tests;
 
 use Storable\Interface\StorableInterface;
 
-class ValueObjectTest implements StorableInterface
+final class ValueObjectTest implements StorableInterface
 {
     private string $id;
 

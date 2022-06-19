@@ -2,6 +2,6 @@
 
 namespace Storable\Exception;
 
-class StorageException extends \Exception
+final class StorageException extends \Exception
 {
 }
